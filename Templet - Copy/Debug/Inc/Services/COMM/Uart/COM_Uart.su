@@ -1,0 +1,5 @@
+../Inc/Services/COMM/Uart/COM_Uart.c:85:20:_USARTx_Init	16	static
+../Inc/Services/COMM/Uart/COM_Uart.c:113:20:_USARTx_DeInit	16	static
+../Inc/Services/COMM/Uart/COM_Uart.c:134:13:UART_MspInit	64	static
+../Inc/Services/COMM/Uart/COM_Uart.c:212:13:UART_MspDeInit	16	static
+../Inc/Services/COMM/Uart/COM_Uart.c:274:13:Error_Handler	4	static,ignoring_inline_asm

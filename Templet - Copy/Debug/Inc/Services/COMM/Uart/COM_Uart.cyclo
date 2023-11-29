@@ -1,0 +1,5 @@
+COM_Uart.c:85:20:_USARTx_Init	3
+COM_Uart.c:113:20:_USARTx_DeInit	1
+COM_Uart.c:134:13:UART_MspInit	4
+COM_Uart.c:212:13:UART_MspDeInit	4
+COM_Uart.c:274:13:Error_Handler	1
