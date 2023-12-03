@@ -1,2 +1,0 @@
-../Inc/Services/SYSCLOCK/SYSCLOCK.c:35:6:SystemClock_Config	160	static
-../Inc/Services/SYSCLOCK/SYSCLOCK.c:79:13:Error_Handler	4	static,ignoring_inline_asm
