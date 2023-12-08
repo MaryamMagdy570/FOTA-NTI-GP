@@ -3,10 +3,6 @@
 Mobile Application using Flutter and Firebase.
 
 ## Getting Started
-
-![alt text](https://github.com/MaryamMagdy570/FOTA-NTI-GP/blob/Flutter-App/appScreenUpdate.jpg?raw=true | width=100) 
-![alt text](https://github.com/MaryamMagdy570/FOTA-NTI-GP/blob/Flutter-App/appScreenUpdateMain.jpg?raw=true)
-
-
-<img src="https://github.com/MaryamMagdy570/FOTA-NTI-GP/blob/Flutter-App/appScreenUpdate.jpg" width="250" height="250">
+<img src="https://github.com/MaryamMagdy570/FOTA-NTI-GP/blob/Flutter-App/appScreenUpdateMain.jpg" width="500" height="500">
+<img src="https://github.com/MaryamMagdy570/FOTA-NTI-GP/blob/Flutter-App/appScreenUpdate.jpg" width="500" height="500">
 
