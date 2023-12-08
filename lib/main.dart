@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:fota/colors.dart';
 import 'package:fota/component.dart';
 import 'package:fota/update.dart';
 import 'firebase_options.dart';
@@ -43,6 +44,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool new_version = false;
   bool firmware_downloaded = false;
   bool firmware_flashed = false;
+  String name = '';
+  int size = 0;
 
   void _incrementCounter() {
     setState(() {
@@ -55,18 +58,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _getDataFromFirebase() async {
     DatabaseReference ref = FirebaseDatabase.instance.ref();
-    final snapshot1, snapshot2, snapshot3, snapshot4, snapshot5;
+    final snapshot1,
+        snapshot2,
+        snapshot3,
+        snapshot4,
+        snapshot5,
+        snapshot6,
+        snapshot7;
     snapshot1 = await ref.child('/details/current_version').get();
     snapshot2 = await ref.child('/details/timestamp').get();
     snapshot3 = await ref.child('/info/new_version').get();
     snapshot4 = await ref.child('/info/firmware_downloaded').get();
     snapshot5 = await ref.child('/info/firmware_flashed').get();
+    snapshot6 = await ref.child('/info/name').get();
+    snapshot7 = await ref.child('/info/size').get();
     setState(() {
       version = snapshot1.value.toString();
       last_modified = snapshot2.value.toString();
       new_version = snapshot3.value;
       firmware_downloaded = snapshot4.value;
       firmware_flashed = snapshot5.value;
+      name = snapshot6.value;
+      size = snapshot7.value;
     });
   }
 
@@ -75,10 +88,16 @@ class _MyHomePageState extends State<MyHomePage> {
     _getDataFromFirebase();
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: AppColors.primary2,
         title: Center(
           child: Text(
             widget.title,
             textAlign: TextAlign.center,
+            // style: Theme.of(context).textTheme.headline4!,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 25,
+            ),
           ),
         ),
       ),
@@ -86,7 +105,15 @@ class _MyHomePageState extends State<MyHomePage> {
         child: RefreshIndicator(
           onRefresh: _getDataFromFirebase,
           child: Container(
-            color: Colors.grey[200],
+            decoration: BoxDecoration(
+              // borderRadius: borderRadius ?? BorderRadius.circular(15.0),
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primary2],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            // color: Color.fromARGB(255, 112, 194, 242),
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               physics: const BouncingScrollPhysics(),
@@ -102,7 +129,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     InfoCard(
                       title: 'Current Version',
-                      content: version,
+                      content: "${version}\nName: \"${name}\"",
                       icon: Icons.timeline_outlined,
                       isPrimaryColor: false,
                       context: context,
@@ -118,7 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     InfoCard(
                       title: 'New Version Available',
-                      content: new_version ? 'YES' : 'NO',
+                      content: new_version ? 'YES\nSize: ${size} Bytes' : 'NO',
                       icon: Icons.event_available,
                       isPrimaryColor: false,
                       context: context,
@@ -144,10 +171,20 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      floatingActionButton: Container(
+        height: 70.0,
+        width: 70.0,
+        child: FittedBox(
+          child: FloatingActionButton(
+            onPressed: _incrementCounter,
+            tooltip: 'Increment',
+            backgroundColor: AppColors.primary,
+            child: const Icon(
+              Icons.add,
+              color: Colors.black,
+            ),
+          ),
+        ),
       ),
     );
   }

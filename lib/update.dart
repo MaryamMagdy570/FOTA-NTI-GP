@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fota/colors.dart';
 import 'component.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
@@ -23,6 +24,8 @@ class _UpdateState extends State<Update> {
   var keyController = TextEditingController();
   var formKey = GlobalKey<FormState>();
   var result = null;
+  String result_name = "";
+  int result_size = 0;
   late PlatformFile file;
   var firebase_dev_key = "123";
 
@@ -30,7 +33,22 @@ class _UpdateState extends State<Update> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Update Firmware"),
+        backgroundColor: AppColors.primary2,
+        title: Text(
+          "Update Firmware",
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 25,
+          ),
+        ),
+        leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.black,
+            )),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -43,17 +61,37 @@ class _UpdateState extends State<Update> {
                 children: [
                   Text(
                     'New Firmware',
-                    style: Theme.of(context).textTheme.headline3!.copyWith(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w100,
-                        ),
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 45,
+                    ),
+                    // style: Theme.of(context).textTheme.headline3!.copyWith(
+                    //       color: Colors.black,
+                    //       fontWeight: FontWeight.w100,
+                    //     ),
                   ),
                   Text(
-                    'Enter the new version and Upload hex file to update the firmware in main MCU',
+                    'Enter the new version and Upload hex file to update the firmware in main ECU',
                     style: Theme.of(context).textTheme.bodyText2!.copyWith(
                           color: Colors.grey,
                           fontSize: 15,
                         ),
+                  ),
+                  SizedBox(
+                    height: 20.0,
+                  ),
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: const Color(0xff7c94b6),
+                      shape: BoxShape.rectangle,
+                      image: const DecorationImage(
+                        image: AssetImage('assets/logo.jpg'),
+                        fit: BoxFit.fill,
+                      ),
+                    ),
                   ),
                   SizedBox(
                     height: 20.0,
@@ -91,20 +129,35 @@ class _UpdateState extends State<Update> {
                   ),
                   GradientButton(
                     onPressed: () async {
-                      print("Choose File");
+                      // print("Choose File");
                       result = await FilePicker.platform
                           .pickFiles(allowMultiple: false);
+
+                      result_name = result.files.first.name;
+                      result_size = result.files.first.size;
 
                       // if no file is picked
                       if (result == null) {
                         Fluttertoast.showToast(
-                            msg: "File not selected ",
+                            msg: "File not selected!!!",
                             toastLength: Toast.LENGTH_SHORT,
                             gravity: ToastGravity.CENTER,
                             timeInSecForIosWeb: 1,
                             backgroundColor: Colors.red,
                             textColor: Colors.white,
                             fontSize: 16.0);
+                      } else if (result_name.substring(
+                              result_name.length - 3, result_name.length) !=
+                          "hex") {
+                        Fluttertoast.showToast(
+                            msg: "Error!!! Please Select hex file",
+                            toastLength: Toast.LENGTH_SHORT,
+                            gravity: ToastGravity.CENTER,
+                            timeInSecForIosWeb: 1,
+                            backgroundColor: Colors.red,
+                            textColor: Colors.white,
+                            fontSize: 16.0);
+                        result = null;
                       } else {
                         Fluttertoast.showToast(
                             msg: "File  selected successfully",
@@ -116,11 +169,9 @@ class _UpdateState extends State<Update> {
                             fontSize: 16.0);
                       }
 
-                      // we will log the name, size and path of the
-                      // first picked file (if multiple are selected)
-                      print(result.files.first.name);
-                      print(result.files.first.size);
-                      print(result.files.first.path);
+                      // print(result.files.first.name);
+                      // print(result.files.first.size);
+                      // print(result.files.first.path);
                     },
                     text: "Choose File",
                     width: MediaQuery.of(context).size.width,
@@ -158,6 +209,8 @@ class _UpdateState extends State<Update> {
                                   'new_version': true,
                                   'firmware_downloaded': false,
                                   'firmware_flashed': false,
+                                  'name': result_name,
+                                  'size': result_size,
                                 });
                                 /* upload file */
                                 file = result.files.first;
@@ -196,7 +249,7 @@ class _UpdateState extends State<Update> {
                                 }
                               } else {
                                 Fluttertoast.showToast(
-                                    msg: "Select File First",
+                                    msg: "Select File First!!!",
                                     toastLength: Toast.LENGTH_SHORT,
                                     gravity: ToastGravity.CENTER,
                                     timeInSecForIosWeb: 1,
@@ -206,7 +259,7 @@ class _UpdateState extends State<Update> {
                               }
                             } else {
                               Fluttertoast.showToast(
-                                  msg: "Invalid Developer Key ",
+                                  msg: "Invalid Developer Key!!!",
                                   toastLength: Toast.LENGTH_SHORT,
                                   gravity: ToastGravity.CENTER,
                                   timeInSecForIosWeb: 1,
