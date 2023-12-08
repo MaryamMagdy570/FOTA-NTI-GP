@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "483327660130",
+    "firebase_url": "https://fota-3324f-default-rtdb.firebaseio.com",
+    "project_id": "fota-3324f",
+    "storage_bucket": "fota-3324f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483327660130:android:abee9881860d8858c7413b",
+        "android_client_info": {
+          "package_name": "com.example.fota"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO1TTtL7X9gvTQ-7xTQOmpBqiMXMjfnqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
