@@ -26,67 +26,13 @@ static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 /* USER CODE END 0 */
 
-
 UART_HandleTypeDef huart1;
-UART_HANDLER 	Huart1 =
-	{
-			.HUSARTx = &huart1,
-			.SESSION_ID = 0
-	};
 UART_HandleTypeDef huart2;
-UART_HANDLER	Huart2 =
-	{
-			.HUSARTx = &huart2 ,
-			.SESSION_ID = 0
-	};
 UART_HandleTypeDef huart3;
-UART_HANDLER	Huart3 =
-	{
-			.HUSARTx = &huart3,
-			.SESSION_ID = 0
-	};
-
-
-
-Uart_StatusTypeDef _USARTx_Init(UART_HANDLER *Huartx, uint8_t SessionID)
-{
-	/*  Enable RCC, Configure GPIOS */
-	HAL_UART_MspInit(Huartx->HUSARTx);
-
-	/*	Configure peripheral	*/
-	if (Huartx->SESSION_ID == 0)
-	{
-		if (Huartx->HUSARTx == &huart1) {
-			MX_USART1_UART_Init();
-			Huartx->SESSION_ID = SessionID;
-		} else if (Huartx->HUSARTx == &huart2) {
-			MX_USART2_UART_Init();
-			Huartx->SESSION_ID = SessionID;
-		} else if (Huartx->HUSARTx == &huart3) {
-			MX_USART3_UART_Init();
-			Huartx->SESSION_ID = SessionID;
-		}
-	}
-	else
-	{
-		return	Uart_BUSY;
-	}
-	return	Uart_OK;
-}
-
-
-Uart_StatusTypeDef _USARTx_DeInit(UART_HANDLER *Huartx)
-{
-	/* Disable RCC, Reset GPIOS, Reset Peripheral  */
-	HAL_UART_MspDeInit(Huartx->HUSARTx);
-	Huartx->SESSION_ID = 0;
-	return	Uart_OK;
-}
-
-
 
 /* USART1 init function */
-static void MX_USART1_UART_Init(void)
+
+void MX_USART1_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART1_Init 0 */
@@ -112,9 +58,9 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE END USART1_Init 2 */
 
 }
-
 /* USART2 init function */
-static void MX_USART2_UART_Init(void)
+
+void MX_USART2_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART2_Init 0 */
@@ -140,9 +86,9 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE END USART2_Init 2 */
 
 }
-
 /* USART3 init function */
-static void MX_USART3_UART_Init(void)
+
+void MX_USART3_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART3_Init 0 */
@@ -246,6 +192,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
   /* USER CODE END USART3_MspInit 1 */
   }
 }
+
 void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 {
 
@@ -304,6 +251,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   /* USER CODE END USART3_MspDeInit 1 */
   }
 }
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */

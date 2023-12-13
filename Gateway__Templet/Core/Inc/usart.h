@@ -27,30 +27,16 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
+extern UART_HandleTypeDef huart1;
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-typedef enum
-{
-  Uart_OK       = 0x00U,
-  Uart_ERROR    = 0x01U,
-  Uart_BUSY     = 0x02U,
-  Uart_TIMEOUT  = 0x03
-} Uart_StatusTypeDef;
+extern UART_HandleTypeDef huart2;
 
-typedef	struct
-{
-	UART_HandleTypeDef 	*HUSARTx;
-	uint8_t				SESSION_ID;
-}UART_HANDLER;
-
-/* USER CODE END PTD */
-
-
+extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
 /* Peripheral Enable: */
@@ -61,28 +47,18 @@ typedef	struct
 
 /* USER CODE END Private defines */
 
-
-#ifdef 	USART1_Enable
-	extern UART_HANDLER Huart1 ;
-#endif
-
-#ifdef	USART2_Enable
-	extern UART_HANDLER	Huart2 ;
-#endif
-
-#ifdef	USART3_Enable
-	extern UART_HANDLER	Huart3 ;
-#endif
-
+void MX_USART1_UART_Init(void);
+void MX_USART2_UART_Init(void);
+void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 Uart_StatusTypeDef _USARTx_Init(UART_HANDLER *Huartx, uint8_t SessionID);
 Uart_StatusTypeDef _USARTx_DeInit(UART_HANDLER *Huartx);
 /* USER CODE END Prototypes */
 
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __USART_H__ */
+

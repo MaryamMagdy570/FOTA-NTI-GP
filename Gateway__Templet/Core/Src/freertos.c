@@ -33,107 +33,13 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 /* USER CODE END Variables */
-
-
-/* Task Handlers -------------------------------------------------------------*/
-/* USER CODE BEGIN Tasks */
-
-/* General Branch tasks ------------------------------------------------------*/
-TaskHandle_t Check_Validity_Task_Handler;
-/*----------------------------------------------------------------------------*/
-/* General Control Branch tasks ----------------------------------------------*/
-TaskHandle_t Init_Deinit_Reset_Task_Handler;
-TaskHandle_t Control_Branch_Task_Handler;
-TaskHandle_t Control_DMA_Task_Handler;
-/*----------------------------------------------------------------------------*/
-/* ESP Branch tasks ----------------------------------------------------------*/
-TaskHandle_t Manage_ESP_Task_Handler;
-TaskHandle_t Send_to_ESP_Task_Handler;
-TaskHandle_t Receive_from_EST_Task_Handler;
-/*----------------------------------------------------------------------------*/
-/* SD Branch tasks -----------------------------------------------------------*/
-TaskHandle_t Manage_SD_Task_Handler;
-TaskHandle_t Send_to_SD_Task_Handler;
-TaskHandle_t Receive_from_SD_Task_Handler;
-/*----------------------------------------------------------------------------*/
-/* Main Nodes Branch tasks ---------------------------------------------------*/
-TaskHandle_t Check_Network_Task_Handler;
-TaskHandle_t Manage_Network_Task_Handler;
-TaskHandle_t Manage_Connection_Task_Handler;
-TaskHandle_t Receive_from_Node_Task_Handler;
-TaskHandle_t Send_to_Node_Task_Handler;
-/*----------------------------------------------------------------------------*/
-
-/* USER CODE END Tasks */
-
-
-/* Queue Handlers ------------------------------------------------------------*/
-/* USER CODE BEGIN Queues */
-
-/* General Branch Queues -----------------------------------------------------*/
-QueueHandle_t	OUT_E_S_MESP_MSD_Queue = NULL ;
-QueueHandle_t	OUT_S_N_MSD_MNet_Queue = NULL ;
-QueueHandle_t	OUT_S_N_MSD_MConn_Queue = NULL ;
-/*----------------------------------------------------------------------------*/
-/* General Control Branch Queues ---------------------------------------------*/
-QueueHandle_t	IN_G_CBranch_CDMA_Queue = NULL ;
-/*----------------------------------------------------------------------------*/
-/* ESP Branch Queues ---------------------------------------------------------*/
-QueueHandle_t	IN_E_Receive_MESP_Queue = NULL ;
-QueueHandle_t	IN_E_MESP_Send_Queue = NULL ;
-/*----------------------------------------------------------------------------*/
-/* SD Branch Queues ----------------------------------------------------------*/
-QueueHandle_t	IN_S_Receive_MSD_Queue = NULL ;
-QueueHandle_t	IN_S_MSD_Send_Queue = NULL ;
-/*----------------------------------------------------------------------------*/
-/* Main Nodes Branch Queues --------------------------------------------------*/
-QueueHandle_t	IN_N_MNetwork_MConn_Queue = NULL ;
-QueueHandle_t	IN_N_Receive_MConn_Queue = NULL ;
-QueueHandle_t	IN_N_MConn_Send_Queue = NULL ;
-QueueHandle_t	IN_N_Receive_CheckNet_Queue = NULL ;
-QueueHandle_t	IN_N_CheckNet_Send_Queue = NULL ;
-/*----------------------------------------------------------------------------*/
-
-/* USER CODE END Queues */
-
-
-/* Semaphore Handlers --------------------------------------------------------*/
-/* USER CODE BEGIN Semaphores */
-
-/* General Branch Semaphores -------------------------------------------------*/
-SemaphoreHandle_t	OUT_N_S_MConn_MNSD_Semph ;
-/*----------------------------------------------------------------------------*/
-/* General Control Branch Semaphores -----------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* ESP Branch Semaphores -----------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* SD Branch Semaphores ------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* Main Nodes Branch Semaphores ----------------------------------------------*/
-SemaphoreHandle_t	IN_N_CheckNet_Semph ;
-SemaphoreHandle_t	IN_N_MConn_MNet_Semph ;
-/*----------------------------------------------------------------------------*/
-
-/* USER CODE END Semaphores */
-
-
-/* Timer Handlers ------------------------------------------------------------*/
-/* USER CODE BEGIN Timers */
-
-/* General Branch Timers -----------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* General Control Branch Timers ---------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* ESP Branch Timers ---------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* SD Branch Timers -----------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-/* Main Nodes Branch Timers --------------------------------------------------*/
-TimerHandle_t		Record_Timer = NULL ;
-/*----------------------------------------------------------------------------*/
-
-/* USER CODE END Timers */
-
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -167,10 +73,22 @@ void Send_to_Node_Task_Func(void * pvParameters);
 
 /* USER CODE END FunctionPrototypes */
 
+void StartDefaultTask(void *argument);
 
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
   /* USER CODE END Init */
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -212,6 +130,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 	/* General Branch Fun */
@@ -242,7 +163,23 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN StartDefaultTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartDefaultTask */
+}
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
