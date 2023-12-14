@@ -266,7 +266,11 @@ Discarded input sections
  .bss.fres      0x0000000000000000        0x1 ./Core/Src/freertos.o
  .rodata        0x0000000000000000      0x149 ./Core/Src/freertos.o
  .text.Manage_SD_Task_Func
+<<<<<<< HEAD
                 0x0000000000000000      0x49c ./Core/Src/freertos.o
+=======
+                0x0000000000000000      0x55c ./Core/Src/freertos.o
+>>>>>>> parent of 7bf9ff5 (.)
  .text.Send_to_SD_Task_Func
                 0x0000000000000000       0x4c ./Core/Src/freertos.o
  .text.Receive_from_SD_Task_Func
@@ -291,8 +295,13 @@ Discarded input sections
                 0x0000000000000000      0x494 ./Core/Src/freertos.o
  .data.record_Counter.0
                 0x0000000000000000        0xa ./Core/Src/freertos.o
+<<<<<<< HEAD
  .debug_info    0x0000000000000000     0x10ab ./Core/Src/freertos.o
  .debug_abbrev  0x0000000000000000      0x252 ./Core/Src/freertos.o
+=======
+ .debug_info    0x0000000000000000     0x1104 ./Core/Src/freertos.o
+ .debug_abbrev  0x0000000000000000      0x26d ./Core/Src/freertos.o
+>>>>>>> parent of 7bf9ff5 (.)
  .debug_aranges
                 0x0000000000000000       0xa8 ./Core/Src/freertos.o
  .debug_rnglists
@@ -376,8 +385,13 @@ Discarded input sections
  .debug_macro   0x0000000000000000      0x369 ./Core/Src/freertos.o
  .debug_macro   0x0000000000000000       0x10 ./Core/Src/freertos.o
  .debug_macro   0x0000000000000000       0x20 ./Core/Src/freertos.o
+<<<<<<< HEAD
  .debug_line    0x0000000000000000     0x1195 ./Core/Src/freertos.o
  .debug_str     0x0000000000000000    0xcec1f ./Core/Src/freertos.o
+=======
+ .debug_line    0x0000000000000000     0x11c6 ./Core/Src/freertos.o
+ .debug_str     0x0000000000000000    0xcec61 ./Core/Src/freertos.o
+>>>>>>> parent of 7bf9ff5 (.)
  .comment       0x0000000000000000       0x44 ./Core/Src/freertos.o
  .debug_frame   0x0000000000000000      0x240 ./Core/Src/freertos.o
  .ARM.attributes

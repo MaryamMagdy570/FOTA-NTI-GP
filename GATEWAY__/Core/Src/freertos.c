@@ -583,6 +583,23 @@ void Manage_SD_Task_Func(void * pvParameters)
 			// send data from buffer to send to sd task
 			xQueueSend(IN_S_MSD_Send_Queue,ESP_Record_localBuffer,0);
 	}
+<<<<<<< HEAD
+=======
+	else if (local_Queue = IN_S_Send_MSD_Queue)
+	{
+		// recieve A or C
+		xQueueReceive(local_Queue, ACK_Buffer, portMAX_DELAY);
+		if (ACK_Buffer == 'A')
+		{
+			xQueueSend(OUT_S_E_MSD_MESP_Queue,ACK_Buffer,0);
+		}
+		else if (ACK_Buffer == 'C')
+		{
+			f_close(&Current_File_Handle_for_Write);
+			xQueueSend(OUT_S_N_MSD_MNet_Queue,MNet_SelectNode_localBuffer,0);
+		}
+	}
+>>>>>>> parent of 7bf9ff5 (.)
 	else;
 	}
 }
