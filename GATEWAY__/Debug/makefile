@@ -68,8 +68,8 @@ all: main-build
 main-build: GATEWAY__.elf secondary-outputs
 
 # Tool invocations
-GATEWAY__.elf GATEWAY__.map: $(OBJS) $(USER_OBJS) C:\Users\marya\OneDrive\Desktop\GATEWAY__\ -\ Copy\STM32F303RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "GATEWAY__.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\marya\OneDrive\Desktop\GATEWAY__ - Copy\STM32F303RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="GATEWAY__.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+GATEWAY__.elf GATEWAY__.map: $(OBJS) $(USER_OBJS) D:\Embedded_Systems\FOTA-NTI-GP\GATEWAY__\STM32F303RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "GATEWAY__.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\Embedded_Systems\FOTA-NTI-GP\GATEWAY__\STM32F303RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="GATEWAY__.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
