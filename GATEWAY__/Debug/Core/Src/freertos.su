@@ -6,7 +6,7 @@
 ../Core/Src/freertos.c:243:6:Manage_ESP_Task_Func	16	static
 ../Core/Src/freertos.c:250:6:Send_to_ESP_Task_Func	16	static
 ../Core/Src/freertos.c:257:6:Receive_from_EST_Task_Func	16	static
-../Core/Src/freertos.c:277:6:Manage_SD_Task_Func	776	static
+../Core/Src/freertos.c:277:6:Manage_SD_Task_Func	784	static
 ../Core/Src/freertos.c:425:6:Send_to_SD_Task_Func	152	static
 ../Core/Src/freertos.c:453:6:Receive_from_SD_Task_Func	136	static
 ../Core/Src/freertos.c:499:6:Check_Network_Task_Func	32	static

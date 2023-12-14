@@ -402,10 +402,10 @@ void Manage_SD_Task_Func(void * pvParameters)
 			// send data from buffer to send to sd task
 			xQueueSend(IN_S_MSD_Send_Queue,ESP_Record_localBuffer,0);
 	}
-	else if (local_Queue = IN_S_Send_MSD_Queue)
+	else if (local_Queue == IN_S_Send_MSD_Queue)
 	{
 		// recieve A or C
-		xQueueReceive(local_Queue, ACK_Buffer, portMAX_DELAY);
+		xQueueReceive(local_Queue, &ACK_Buffer, portMAX_DELAY);
 		if (ACK_Buffer == 'A')
 		{
 			xQueueSend(OUT_S_E_MSD_MESP_Queue,ACK_Buffer,0);
