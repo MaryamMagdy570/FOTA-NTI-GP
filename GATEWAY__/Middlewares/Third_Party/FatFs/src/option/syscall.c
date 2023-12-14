@@ -15,6 +15,7 @@
  returned, the f_mount function fails with FR_INT_ERR.
 */
 
+
 int ff_cre_syncobj (	/* TRUE:Function succeeded, FALSE:Could not create due to any error */
 	BYTE vol,			/* Corresponding logical drive being processed */
 	_SYNC_t *sobj		/* Pointer to return the created sync object */

@@ -61,7 +61,7 @@ TaskHandle_t Control_DMA_Task_Handler;
 /* ESP Branch tasks ----------------------------------------------------------*/
 TaskHandle_t Manage_ESP_Task_Handler;
 TaskHandle_t Send_to_ESP_Task_Handler;
-TaskHandle_t Receive_from_EST_Task_Handler;
+TaskHandle_t Receive_from_ESP_Task_Handler;
 /*----------------------------------------------------------------------------*/
 /* SD Branch tasks -----------------------------------------------------------*/
 TaskHandle_t Manage_SD_Task_Handler;
@@ -149,6 +149,7 @@ SemaphoreHandle_t	IN_S_MNSD_Receive_Semph;
 /* Main Nodes Branch Semaphores ----------------------------------------------*/
 SemaphoreHandle_t	IN_N_CheckNet_Semph ;
 SemaphoreHandle_t	IN_N_MConn_MNet_Semph ;
+SemaphoreHandle_t	IN_N_Receive_TRIG_Semaph ;
 /*----------------------------------------------------------------------------*/
 
 /* USER CODE END Semaphores */
@@ -188,7 +189,7 @@ void Control_DMA_Task_Func(void * pvParameters);
 /* ESP Branch Fun */
 void Manage_ESP_Task_Func(void * pvParameters);
 void Send_to_ESP_Task_Func(void * pvParameters);
-void Receive_from_EST_Task_Func(void * pvParameters);
+void Receive_from_ESP_Task_Func(void * pvParameters);
 /* SD Branch Fun */
 void Manage_SD_Task_Func(void * pvParameters);
 void Send_to_SD_Task_Func(void * pvParameters);
@@ -315,7 +316,7 @@ void Send_to_ESP_Task_Func(void * pvParameters)
     }
   }
 }
-void Receive_from_EST_Task_Func(void * pvParameters)
+void Receive_from_ESP_Task_Func(void * pvParameters)
 {
   uint8_t block[128];
   HAL_StatusTypeDef state =HAL_OK;
@@ -332,7 +333,7 @@ void Receive_from_EST_Task_Func(void * pvParameters)
       }
       else
       {
-        xQueueCRSend(IN_E_MESP_Send_Queue,block, 100/*block time*/);
+        xQueueSend(IN_E_MESP_Send_Queue,block, 100/*block time*/);
       }
     }
   }
@@ -369,6 +370,8 @@ void Manage_SD_Task_Func(void * pvParameters)
 
 	while(1)
 	{
+
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_2);
 	// check which queue has received new data.
 	local_Queue = xQueueSelectFromSet(MSD_QueueSet, portMAX_DELAY);
 	if (local_Queue == IN_S_Receive_MSD_Queue) //Receive from SD_Receive task
@@ -507,6 +510,8 @@ void Send_to_SD_Task_Func(void * pvParameters)   //write
     UINT bytesWrote;
 	while(1)
 	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
+
 		// receive the data from sd_manage into the local buffer.
 		xQueueReceive(IN_S_MSD_Send_Queue, Record_localWriteBuffer, portMAX_DELAY);
 
@@ -536,6 +541,7 @@ void Receive_from_SD_Task_Func(void * pvParameters)   //read
 
 	while(1)
 	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_3);
 			// take the triggering semaphore
 			xSemaphoreTake(IN_S_MNSD_Receive_Semph, portMAX_DELAY);
 
@@ -661,205 +667,213 @@ void Manage_Network_Task_Func(void * pvParameters)
 }
 void Manage_Connection_Task_Func(void * pvParameters)
 {
-	QueueSetMemberHandle_t 	local_Queue = NULL;
-	uint8_t			Node_Number;
-	uint8_t			record_localBuffer[5][2][50];
-	uint8_t			MSD_ack_Buffer[2];
-	uint8_t			ack_localBuffer[2];
-	bool	 		swing = 0;
-	uint8_t 		recordSize = 0;
-	uint8_t 		oldSize[5] = {3,3,3,3,3};  // the size of the Info starting message.
-	uint8_t 		var = 0;
-	static int16_t	record_Counter[5] = {-1,-1,-1,-1,-1};
+ uint8_t   record_localBuffer[2][50];
+ uint8_t   MSD_ack_Buffer[2];
+ uint8_t   ack_localBuffer[2];
+ bool    swing = 0;
+ uint8_t   recordSize = 0;
+ uint8_t   oldSize = 3;  // the size of the Info starting message.
+ uint8_t   var = 0;
+ static int16_t record_Counter = -1;
 
-	while(1)
-	{
-		// take the starting semaphore.
-		// check which queue has received new data.
-		local_Queue = xQueueSelectFromSet(MConn_QueueSet, 0);
-		if (local_Queue == OUT_S_N_MSD_MConn_Queue) // Receive new record from Manage SD task
-		{
-			if (record_Counter[Node_Number] <= 0) // for sending first line in communication process.
-			{
-				// store the record inside a local buffer.
-				xQueueReceive(local_Queue, record_localBuffer[Node_Number][!swing], 0);
-				if (record_Counter[Node_Number] == 0) {
-					// store the record inside a local buffer.
-					xQueueReceive(local_Queue, record_localBuffer[Node_Number][swing], 0);
-					while(record_localBuffer[Node_Number][swing][var] != '#')
-					{
-						recordSize++;
-					}
-					var = 0; // return the var value to zero.
-					recordSize++; // as we add the size of the next record.  (Need to be checked)
-					record_localBuffer[Node_Number][!swing][oldSize[Node_Number]] = recordSize;
-					// send the old record and the size of this record and the new one to the send task.
-					xQueueSend(IN_N_MConn_Send_Queue_1,record_localBuffer[Node_Number][!swing],0);
-					oldSize[Node_Number]++;
-					xQueueSend(IN_N_MConn_Send_Queue_2,&oldSize[Node_Number],0);
-					// clear the buffer and change the values.
-					for (uint8_t var_l = 0; var_l < oldSize[Node_Number]; ++var_l) {
-						record_localBuffer[Node_Number][!swing][var_l] = 0;
-					}
-					swing = !swing; // Flip the swing value.
-					oldSize[Node_Number] = recordSize; // store the recordsize as the oldsize.
-				}
-				else
-				{
-					record_Counter[Node_Number]++; // it will be 0;
-					//send second record.
-				}
-			}
-			else
-			{
-				// store the record inside a local buffer.
-				xQueueReceive(local_Queue, record_localBuffer[swing], 0);
-				// count the record size.
-				while(record_localBuffer[Node_Number][swing][var] != '#') {
-					recordSize++;
-				}
-				var = 0;	// return the var value to zero.
-				recordSize++; // as we add the size of the next record.  (Need to be checked)
-				record_localBuffer[Node_Number][!swing][oldSize[Node_Number]] = recordSize;
-				// send the old record and the size of the new one to the send task.
-				xQueueSend(IN_N_MConn_Send_Queue_1,record_localBuffer[!swing],0);
-				oldSize[Node_Number]++;
-				xQueueSend(IN_N_MConn_Send_Queue_2,&oldSize[Node_Number],0);
-				// clear the buffer and change the values.
-				for (uint8_t var_l = 0; var_l < oldSize[Node_Number]; ++var_l) {
-					record_localBuffer[Node_Number][!swing][var_l] = 0;
-				}
-				swing = !swing; // Flip the swing value.
-				oldSize[Node_Number] = recordSize; // store the recordsize as the oldsize.
-			}
-			record_Counter[Node_Number]++;
-			// give the ACK that trigger the Manage SD task
-			MSD_ack_Buffer[0] =	FILE_RECORD[Node_Number];
-			MSD_ack_Buffer[1] = 0;
-			xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
-			// Give the semaphore to the manage Network to change the node number.
-			xSemaphoreGive(IN_N_MConn_MNet_Semph);
-		}
-		else if (local_Queue == IN_N_MNetwork_MConn_Queue) // Receive Data from Manage network task
-		{
-			// store the Node Number inside a local buffer.
-			xQueueReceive(local_Queue, &Node_Number, 0);
-		}
-		else if (local_Queue == IN_N_Receive_MConn_Queue_1) // Receive acknowledge from the Connected Node.
-		{
-			// store the acknowledge inside a local buffer.
-			xQueueReceive(local_Queue, &ack_localBuffer[0], 0);
-			// store the Node Number.
-			xQueueReceive(local_Queue, &ack_localBuffer[1], 0);
-			// switch on acks value.
-			switch (ack_localBuffer[0])
-			{
-				case 	0x01:  // Start connection.
-					// ask the SD for starting information {Number of Records(2-Bytes),First record size(1-Byte)}.
-					// give the ACK that Open File in the SD task
-					MSD_ack_Buffer[0] =	FILE_OPEN[ack_localBuffer[1]];
-					MSD_ack_Buffer[1] = 0;
-					xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
-					break;
+ while(1)
+ {
+        /* receive from Node :  */
+  xQueueReceive(IN_N_Receive_MConn_Queue_1, &ack_localBuffer[0], portMAX_DELAY);  // store the acknowledge inside a local buffer.
+  xQueueReceive(IN_N_Receive_MConn_Queue_2, &ack_localBuffer[1], 0);  // store the Node Number.
+  // switch on acks value.
+  switch (ack_localBuffer[0])
+  {
+   case  0x01:  // Start connection.
+    /*  1- ask the SD for starting information {Number of Records(2-Bytes),First record size(1-Byte)}.   */
+    MSD_ack_Buffer[0] = FILE_OPEN[ack_localBuffer[1]];
+    xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);  // give the ACK that Open File in the SD task
+    break;
 
-				case 	0x02:  // Accepted ACK for new Image .
-					// ask the SD for the First Record.
-					MSD_ack_Buffer[0] =	FILE_RECORD[ack_localBuffer[1]]; // third record.
-					MSD_ack_Buffer[1] = 0;
-					xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
-					break;
+   case  0x02:  // Accepted ACK for new Image, ask the SD for the First Record.
+    MSD_ack_Buffer[0] = FILE_RECORD[ack_localBuffer[1]]; // third record.
+    xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
+    break;
 
-				case 	0x03:  // Not Accepted n_ack for new Image .
-					// Delete the Image and inform the Server.
-					MSD_ack_Buffer[0] =	FILE_CLOSE[ack_localBuffer[1]];
-					MSD_ack_Buffer[1] = 0;
-					xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
-					break;
+   case  0x03:  // Not Accepted n_ack for new Image, Delete the Image and inform the Server.
+    MSD_ack_Buffer[0] = FILE_CLOSE[ack_localBuffer[1]];
+    xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
+    break;
 
-				case 	0x04:	// Start synchronization at the start of record (1).
-					// store the start time.
-					break;
+   case  0x04: // Send the next record.
+    MSD_ack_Buffer[0] = FILE_RECORD[ack_localBuffer[1]]; // next record.
+    xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
+    break;
 
-				case 	0x05:	// End synchronization at the end of record (1).
-					// store the start time.
-					break;
+   case  0x06: // process Failed.
+    // stop and end the process.
+    MSD_ack_Buffer[0] = FILE_CLOSE[ack_localBuffer[1]];
+    xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
+    break;
 
-				case 	0x06:	// process Failed.
-					// stop and end the process.
-					MSD_ack_Buffer[0] =	FILE_CLOSE[ack_localBuffer[1]];
-					MSD_ack_Buffer[1] = 0;
-					xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
-					break;
+   case  0x07: // End Process successfully.
+    ResetBranch();
+    record_Counter = 0;
+    oldSize = 3;
+    // send the end ACK to the MSD task.
+    MSD_ack_Buffer[0] = FILE_CLOSE[ack_localBuffer[1]];
+    xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
+    break;
 
-				case 	0x07:	// End Process successfully.
-					ResetBranch();
-					record_Counter[ack_localBuffer[1]] = 0;
-					oldSize[ack_localBuffer[1]] = 3;
-					// send the end ACK to the MSD task.
-					MSD_ack_Buffer[0] =	FILE_CLOSE[ack_localBuffer[1]];
-					MSD_ack_Buffer[1] = 0;
-					xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
-					break;
+   default:
+    break;
+  }
+  if (record_Counter < 1) // for sending first line in communication process, and the first record.
+    {
+              // 2- store the information inside a local buffer.
+     xQueueReceive(OUT_S_N_MSD_MConn_Queue, record_localBuffer[!swing], portMAX_DELAY);
 
-				default:
-					break;
-			}
-		}
-	}
-}
+              // 3- ask for the first record.
+              MSD_ack_Buffer[0] = FILE_RECORD[0];
+     xQueueSend(OUT_N_S_MConn_MSD_Queue,MSD_ack_Buffer,0);
 
-void Receive_from_Node_Task_Func(void * pvParameters)
-{
-	uint8_t		ack_localBuffer[50];
-	uint8_t		NodeNum;
-	while(1)
-	{
-		// store the received data into the local buffer
-		//HAL_I2C_Slave_Receive_DMA(hi2c, pData, Size)
-		// send the data to the manage connection task.
-		xQueueSend(IN_N_Receive_MConn_Queue_1,ack_localBuffer,0);
-		// get the Node ID from the Address value, and send it to the Manage Connection.
-		// GETID_FUN(ADDRESS,NodeNum);
-		xQueueSend(IN_N_Receive_MConn_Queue_2,&NodeNum,0);
-	}
-}
+              // 4- store the first record inside a local buffer.
+        xQueueReceive(OUT_S_N_MSD_MConn_Queue, record_localBuffer[swing],portMAX_DELAY);
 
+              // 5- count the size of the first record.
+        while(record_localBuffer[swing][var] != '#')
+        {
+         recordSize++;
+        }
+        var = 0; // return the var value to zero.
+
+              // 6- load the record size inside the !swing buffer.
+        record_localBuffer[!swing][oldSize] = recordSize;
+
+              // 7- send the size of the message.
+        oldSize++;
+        xQueueSend(IN_N_MConn_Send_Queue_2,&oldSize,0);
+
+        // 8- send the old record and the size of this record and the new one to the send task.
+        xQueueSend(IN_N_MConn_Send_Queue_1,record_localBuffer[!swing],0);
+
+        // 9- clear the buffer and change the values.
+        for (uint8_t var_l = 0; var_l < oldSize; ++var_l)
+              {
+         record_localBuffer[!swing][var_l] = 0;
+        }
+        swing = !swing; // Flip the swing value.
+        oldSize = recordSize; // store the recordsize as the oldsize.
+
+              // 10- Update the record number, it will be 1;
+     record_Counter += 2;
+          }
+  else
+          {
+              // 11- store the record inside a local buffer.
+     xQueueReceive(OUT_S_N_MSD_MConn_Queue, record_localBuffer[swing], 0);
+
+     // 12- count the record size.
+     while(record_localBuffer[swing][var] != '#') {
+      recordSize++;
+     }
+     var = 0; // return the var value to zero.
+
+              // 13- store the size in the previous record.
+     record_localBuffer[!swing][oldSize] = recordSize;
+
+     // 14- send the size of the message.
+        oldSize++;
+        xQueueSend(IN_N_MConn_Send_Queue_2,&oldSize,0);
+
+        // 15- send the old record and the size of this record and the new one to the send task.
+        xQueueSend(IN_N_MConn_Send_Queue_1,record_localBuffer[!swing],0);
+
+     // 16- clear the buffer and change the values.
+     for (uint8_t var_l = 0; var_l < oldSize; ++var_l) {
+      record_localBuffer[!swing][var_l] = 0;
+     }
+     swing = !swing; // Flip the swing value.
+     oldSize = recordSize; // store the recordsize as the oldsize.
+          }
+      }
+  }
 void Send_to_Node_Task_Func(void * pvParameters)
 {
-	QueueSetMemberHandle_t 	local_Queue = NULL;
-	uint8_t			DevAddress = 0;
-	uint8_t			record_localBuffer[50];
-	uint8_t			record_Size;
-	while(1)
-	{
-		// receive the data from the Queue.
-		local_Queue = xQueueSelectFromSet(N_Send_QueueSet, 0);
-		if (local_Queue == IN_N_MConn_Send_Queue_1) // Receive new record from Manage SD task
-		{
-			xQueueReceive(IN_N_MConn_Send_Queue_1, record_localBuffer, 0);
-			xQueueReceive(IN_N_MConn_Send_Queue_1, &record_Size, 0);
-			// send the data.
-			//HAL_I2C_Master_Transmit_DMA(hi2c, 0x00, record_localBuffer, record_Size);
-		}
-		else if (local_Queue == IN_N_CheckNet_Send_Queue)
-		{
-			xQueueReceive(IN_N_CheckNet_Send_Queue, record_localBuffer, 0);
-			// send the data.
-			//HAL_I2C_Master_Transmit_DMA(hi2c, 0x00, record_localBuffer[0], 1);
-		}
-		else if (local_Queue == IN_N_MNetwork_Send_Queue)
-		{
-			xQueueReceive(IN_N_MNetwork_Send_Queue, &DevAddress, 0);
-			// send the data.
-			//HAL_I2C_Master_Transmit_DMA(hi2c, 0x00, record_localBuffer[0], 1);
-		}
-	}
+ QueueSetMemberHandle_t  local_Queue = NULL;
+ uint8_t   DevAddress = 0;
+    uint8_t   Request = 0;
+ uint8_t   record_localBuffer[50];
+ uint8_t   record_Size;
+ while(1)
+ {
+  // receive the data from the Queue.
+  local_Queue = xQueueSelectFromSet(N_Send_QueueSet, portMAX_DELAY);
+  if (local_Queue == IN_N_MConn_Send_Queue_1)
+  {
+            // 1- receive the data from the manage connection task.
+   xQueueReceive(IN_N_MConn_Send_Queue_1, record_localBuffer, 0);
+
+            // 1- receive the data size from the manage connection task.
+   xQueueReceive(IN_N_MConn_Send_Queue_2, &record_Size, 0);
+
+   // 3- send the data.
+   HAL_UART_Transmit_DMA(&huart1, record_localBuffer, record_Size);
+  }
+        else if (local_Queue == IN_N_MNetwork_Send_Queue) // configuration for the send task.
+  {
+            // receive the new address and change the address value.
+   xQueueReceive(IN_N_MNetwork_Send_Queue, &DevAddress, 0);
+            if(uxQueueMessagesWaiting(IN_N_MNetwork_Send_Queue_2) > 0)
+            {
+                // receive the new address and change the address value.
+       xQueueReceive(IN_N_MNetwork_Send_Queue_2, &Request, 0);
+                // send the data.
+       HAL_UART_Transmit_DMA(&huart1, &Request, 1);
+            }
+  }
+  else if (local_Queue == IN_N_CheckNet_Send_Queue)
+  {
+            // General call to recognize the nodes in the Network.
+   xQueueReceive(IN_N_CheckNet_Send_Queue, &Request, 0);
+   // send the data.
+   HAL_UART_Transmit_DMA(&huart1, &Request, 1);
+  }
+ }
+}
+// Global buffer that will rstore the coming ACKs.
+uint8_t  ack_localBuffer[2];
+void Receive_from_Node_Task_Func(void * pvParameters)
+{
+ uint8_t  NodeNum;
+    HAL_UART_Receive_DMA(&huart1, ack_localBuffer, 2);
+ while(1)
+ {
+  // 1- store the received data into the local buffer the max size is 2.
+  xSemaphoreTake(IN_N_Receive_TRIG_Semaph , portMAX_DELAY);
+
+        // 2- get the Node ID from the Address value, and send it to the Manage Connection.
+  NodeNum = ack_localBuffer[0];
+  xQueueSend(IN_N_Receive_MConn_Queue_2,&NodeNum,0);
+
+  // 3- send the data to the manage connection task.
+  xQueueSend(IN_N_Receive_MConn_Queue_1,&ack_localBuffer[1],0);
+
+        // 4- Restart the receiving again.
+        HAL_UART_Receive_DMA(&huart1, ack_localBuffer, 2);
+ }
+}
+
+void HAL_DMA_RxCpltCallback(DMA_HandleTypeDef *hdma)
+{
+    // Reception Complete callback
+    // This function is called when the DMA transfer is complete for reception
+    // You can perform additional actions here
+    BaseType_t xYieldRequired = pdFALSE;
+ xSemaphoreGiveFromISR(IN_N_Receive_TRIG_Semaph, &xYieldRequired); // trigger the semaphore.
+ portYIELD_FROM_ISR( xYieldRequired ); //Return to the RTOS.
 }
 /*----------------------------------------------------------------------------*/
 void ResetBranch(void)
 {
-	flag_address_buffer_update=0;
+ flag_address_buffer_update=0;
 }
+
 /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
 /* USER CODE END Application */
@@ -883,6 +897,7 @@ void MX_FREERTOS_Init(void) {
 	// Nodes
 	IN_N_CheckNet_Semph = xSemaphoreCreateBinary();
 	IN_N_MConn_MNet_Semph = xSemaphoreCreateBinary();
+	IN_N_Receive_TRIG_Semaph = xSemaphoreCreateBinary();
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -893,7 +908,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
 	// General Branches
-	S_Sec_ESP_TO_MSD_Queue	= xQueueCreate(2,sizeof(uint8_t));
+	S_Sec_ESP_TO_MSD_Queue	= xQueueCreate(1,sizeof(uint8_t));
 	OUT_S_E_MSD_MESP_Queue 	= xQueueCreate(2,sizeof(uint8_t));
 	OUT_E_S_MESP_MSD_Queue 	= xQueueCreate(2,sizeof(uint8_t));
 	OUT_S_N_MSD_MNet_Queue 	= xQueueCreate(2,sizeof(uint8_t));
@@ -955,7 +970,7 @@ void MX_FREERTOS_Init(void) {
 	xTaskCreate( Control_Branch_Task_Func , "Control Branch"  , 100 , NULL , 29U , &Control_Branch_Task_Handler );
 	xTaskCreate( Control_DMA_Task_Func , "Control DMA"  , 100 , NULL , 28U , &Control_DMA_Task_Handler );
 	/* ESP Branch Fun */
-	xTaskCreate( Receive_from_EST_Task_Func , "Receive from EST"  , 100 , NULL , 5U , &Receive_from_EST_Task_Handler );
+	xTaskCreate( Receive_from_ESP_Task_Func , "Receive from EST"  , 100 , NULL , 5U , &Receive_from_ESP_Task_Handler );
 	xTaskCreate( Manage_ESP_Task_Func , "Manage ESP"  , 100 , NULL , 4U , &Manage_ESP_Task_Handler );
 	xTaskCreate( Send_to_ESP_Task_Func , "Send to ESP"  , 100 , NULL , 3U , &Send_to_ESP_Task_Handler );
 	/* SD Branch Fun */
@@ -972,9 +987,9 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
 
-	  //init
+
+	//  init
 	    uint8_t blocks_num = 2;
 	    uint8_t NodeNum = 1;
 	    xQueueSend(S_Sec_ESP_TO_MSD_Queue,&NodeNum,100/*block time*/);//nodenum
@@ -985,6 +1000,9 @@ void MX_FREERTOS_Init(void) {
 	    //take semaphore from control
 	    //communicate with server
 	    //give semaphore to receive task
+
+
+  /* USER CODE END RTOS_EVENTS */
 
 
 
