@@ -42,6 +42,7 @@ uint8_t FILE_OPEN[5]	=	{0,1,2,3,4};
 uint8_t FILE_CLOSE[5]	=	{5,6,7,8,9};
 uint8_t FILE_RECORD[5]	=	{10,11,12,13,14};
 /* USER CODE END Variables */
+<<<<<<< HEAD
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -49,6 +50,122 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+=======
+
+
+/* Task Handlers -------------------------------------------------------------*/
+/* USER CODE BEGIN Tasks */
+
+/* General Branch tasks ------------------------------------------------------*/
+TaskHandle_t Check_Validity_Task_Handler;
+/*----------------------------------------------------------------------------*/
+/* General Control Branch tasks ----------------------------------------------*/
+TaskHandle_t Init_Deinit_Reset_Task_Handler;
+TaskHandle_t Control_Branch_Task_Handler;
+TaskHandle_t Control_DMA_Task_Handler;
+/*----------------------------------------------------------------------------*/
+/* ESP Branch tasks ----------------------------------------------------------*/
+TaskHandle_t Manage_ESP_Task_Handler;
+TaskHandle_t Send_to_ESP_Task_Handler;
+TaskHandle_t Receive_from_EST_Task_Handler;
+/*----------------------------------------------------------------------------*/
+/* SD Branch tasks -----------------------------------------------------------*/
+TaskHandle_t Manage_SD_Task_Handler;
+TaskHandle_t Send_to_SD_Task_Handler;
+TaskHandle_t Receive_from_SD_Task_Handler;
+/*----------------------------------------------------------------------------*/
+/* Main Nodes Branch tasks ---------------------------------------------------*/
+TaskHandle_t Check_Network_Task_Handler;
+TaskHandle_t Manage_Network_Task_Handler;
+TaskHandle_t Manage_Connection_Task_Handler;
+TaskHandle_t Receive_from_Node_Task_Handler;
+TaskHandle_t Send_to_Node_Task_Handler;
+/*----------------------------------------------------------------------------*/
+
+/* USER CODE END Tasks */
+
+
+/* Queue Handlers ------------------------------------------------------------*/
+/* USER CODE BEGIN Queues */
+
+/* Security Branch Queues -----------------------------------------------------*/
+QueueHandle_t	S_Sec_ESP_TO_MSD_Queue = NULL;
+/* General Branch Queues -----------------------------------------------------*/
+QueueHandle_t	OUT_E_S_MESP_MSD_Queue = NULL ;
+QueueHandle_t	OUT_S_E_MSD_MESP_Queue = NULL ;
+QueueHandle_t	OUT_S_N_MSD_MNet_Queue = NULL ;
+QueueHandle_t	OUT_S_N_MSD_MConn_Queue = NULL ;
+QueueHandle_t	OUT_N_S_MConn_MSD_Queue = NULL ;
+/*----------------------------------------------------------------------------*/
+/* General Control Branch Queues ---------------------------------------------*/
+QueueHandle_t	IN_G_CBranch_CDMA_Queue = NULL ;
+/*----------------------------------------------------------------------------*/
+/* ESP Branch Queues ---------------------------------------------------------*/
+QueueHandle_t	IN_E_Receive_MESP_Queue = NULL ;
+QueueHandle_t	IN_E_MESP_Send_Queue = NULL ;
+/*----------------------------------------------------------------------------*/
+/* SD Branch Queues ----------------------------------------------------------*/
+QueueHandle_t	IN_S_Receive_MSD_Queue = NULL ;
+QueueHandle_t	IN_S_MSD_Send_Queue = NULL ;
+/*----------------------------------------------------------------------------*/
+/* Main Nodes Branch Queues --------------------------------------------------*/
+QueueHandle_t	IN_N_MNetwork_MConn_Queue = NULL ;
+QueueHandle_t	IN_N_Receive_MConn_Queue_1 = NULL ;
+QueueHandle_t	IN_N_Receive_MConn_Queue_2 = NULL ;
+QueueHandle_t	IN_N_MConn_Send_Queue_1 = NULL ;
+QueueHandle_t	IN_N_MConn_Send_Queue_2 = NULL ;
+QueueHandle_t	IN_N_Receive_CheckNet_Queue = NULL ;
+QueueHandle_t	IN_N_CheckNet_Send_Queue = NULL ;
+QueueHandle_t	IN_N_MNetwork_Send_Queue = NULL ;
+QueueHandle_t	IN_N_CheckNet_MNetwork_Queue = NULL;
+// Queue set:
+QueueSetHandle_t	MConn_QueueSet  = NULL;
+QueueSetHandle_t	N_Send_QueueSet  = NULL;
+QueueSetHandle_t    MSD_QueueSet = NULL;
+/*----------------------------------------------------------------------------*/
+
+/* USER CODE END Queues */
+
+
+/* Semaphore Handlers --------------------------------------------------------*/
+/* USER CODE BEGIN Semaphores */
+
+/* General Branch Semaphores -------------------------------------------------*/
+SemaphoreHandle_t	OUT_N_S_MConn_MNSD_Semph ;
+/*----------------------------------------------------------------------------*/
+/* General Control Branch Semaphores -----------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* ESP Branch Semaphores -----------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* SD Branch Semaphores ------------------------------------------------------*/
+SemaphoreHandle_t	IN_S_MNSD_Receive_Semph;
+/*----------------------------------------------------------------------------*/
+/* Main Nodes Branch Semaphores ----------------------------------------------*/
+SemaphoreHandle_t	IN_N_CheckNet_Semph ;
+SemaphoreHandle_t	IN_N_MConn_MNet_Semph ;
+/*----------------------------------------------------------------------------*/
+
+/* USER CODE END Semaphores */
+
+
+/* Timer Handlers ------------------------------------------------------------*/
+/* USER CODE BEGIN Timers */
+
+/* General Branch Timers -----------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* General Control Branch Timers ---------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* ESP Branch Timers ---------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* SD Branch Timers -----------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* Main Nodes Branch Timers --------------------------------------------------*/
+TimerHandle_t		Record_Timer = NULL ;
+/*----------------------------------------------------------------------------*/
+
+/* USER CODE END Timers */
+
+>>>>>>> parent of 1597b3d (sd_tasks update)
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -353,7 +470,6 @@ void Manage_SD_Task_Func(void * pvParameters)
 	uint8_t	ESP_SelectNode_localBuffer 	= 0;
 	uint8_t	MConn_REQUEST_localBuffer[2] = {0};
 	uint8_t	SD_Receive_MConn_Record_localBuffer[50] = {0};
-	uint8_t	ACK_Buffer = 0;
 
 	FATFS FatFs; 	//Fatfs handle
 	//SD MOUNT
@@ -379,58 +495,53 @@ void Manage_SD_Task_Func(void * pvParameters)
 
 		switch(MConn_REQUEST_localBuffer[0])
 		{
-			case 0 :fres = f_open(&fil1, "NODE1.txt", FA_READ );
-					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
-					break;
+			case 0 :	fres = f_open(&fil1, "NODE1.txt", FA_READ );
+								break;
 			case 1:	fres = f_open(&fil2, "NODE2.txt", FA_READ );
-					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
-					break;
+								break;
 			case 2:	fres = f_open(&fil3, "NODE3.txt", FA_READ );
-					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
-					break;
+								break;
 			case 3:	fres = f_open(&fil4, "NODE4.txt", FA_READ );
-					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
-					break;
+								break;
 			case 4:	fres = f_open(&fil5, "NODE5.txt", FA_READ );
-					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
-					break;
+								break;
 
 			case 10: Current_File_Handle_for_Read = fil1;
-					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-					 break;
+										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+												break;
 			case 11: Current_File_Handle_for_Read = fil2;
-					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-					 break;
+										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+												break;
 			case 12: Current_File_Handle_for_Read = fil3;
-					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-					 break;
+										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+												break;
 			case 13: Current_File_Handle_for_Read = fil4;
-					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-					 break;
+										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+												break;
 			case 14: Current_File_Handle_for_Read = fil5;
-					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-					 break;
+										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+												break;
 
-			case 5:	f_close(&fil1);
-					MNet_SelectNode_localBuffer[0] = 0;
-					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-					break;
-			case 6:	f_close(&fil2);
-					MNet_SelectNode_localBuffer[1] = 0;
-					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-					break;
-			case 7:	f_close(&fil3);
-					MNet_SelectNode_localBuffer[2] = 0;
-					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-					break;
-			case 8:	f_close(&fil4);
-					MNet_SelectNode_localBuffer[3] = 0;
-					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-					break;
-			case 9:	f_close(&fil5);
-					MNet_SelectNode_localBuffer[4] = 0;
-					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-					break;
+			case 5: 	f_close(&fil1);
+												MNet_SelectNode_localBuffer[0] = 0;
+												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+												break;
+			case 6: 	f_close(&fil2);
+												MNet_SelectNode_localBuffer[1] = 0;
+												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+												break;
+			case 7: 	f_close(&fil3);
+												MNet_SelectNode_localBuffer[2] = 0;
+												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+												break;
+			case 8: 	f_close(&fil4);
+												MNet_SelectNode_localBuffer[3] = 0;
+												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+												break;
+			case 9: 	f_close(&fil5);
+												MNet_SelectNode_localBuffer[4] = 0;
+												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+												break;
 
 				default: break;
 		}
@@ -461,7 +572,7 @@ void Manage_SD_Task_Func(void * pvParameters)
 							Current_File_Handle_for_Write = fil5;
 							MNet_SelectNode_localBuffer[4] = 1;
 							break;
-				default:  break;
+					default:  break;
 			}
 	}
 	else if (local_Queue == OUT_E_S_MESP_MSD_Queue )		 // un completed yet
@@ -472,51 +583,23 @@ void Manage_SD_Task_Func(void * pvParameters)
 			// send data from buffer to send to sd task
 			xQueueSend(IN_S_MSD_Send_Queue,ESP_Record_localBuffer,0);
 	}
-	else if (local_Queue = IN_S_Send_MSD_Queue)
-	{
-		// recieve A or C
-		xQueueReceive(local_Queue, ACK_Buffer, portMAX_DELAY);
-		if (ACK_Buffer == 'A')
-		{
-			xQueueSend(OUT_S_E_MSD_MESP_Queue,ACK_Buffer,0);
-		}
-		else if (ACK_Buffer == 'C')
-		{
-			f_close(&Current_File_Handle_for_Write);
-			xQueueSend(OUT_S_N_MSD_MNet_Queue,MNet_SelectNode_localBuffer,0);
-		}
-	}
 	else;
-
 	}
 }
 
 
 void Send_to_SD_Task_Func(void * pvParameters)   //write
 {
-	BYTE Record_localWriteBuffer[128];
-	uint8_t dataLength = 0;
-    UINT bytesWrote;
+	BYTE Record_localWriteBuffer[512];
+  UINT bytesWrote;
 	while(1)
 	{
 		// receive the data from sd_manage into the local buffer.
 		xQueueReceive(IN_S_MSD_Send_Queue, Record_localWriteBuffer, portMAX_DELAY);
 
-		// getting length of data
-		dataLength = strlen(Record_localWriteBuffer);
-
 		// send the data from local buffer to SD card
-		fres = f_write(&Current_File_Handle_for_Write, Record_localWriteBuffer, dataLength , &bytesWrote);
+  	fres = f_write(&Current_File_Handle_for_Write, Record_localWriteBuffer, 512 , &bytesWrote);
 
-
-		if (bytesWrote == 128)
-		{
-			xQueueSend(IN_S_Send_MSD_Queue,'A',0);
-		}
-		else if (bytesWrote < 128)
-		{
-			xQueueSend(IN_S_Send_MSD_Queue,'C',0);
-		}
 	}
 }
 
@@ -856,3 +939,102 @@ void ResetBranch(void)
 
 /* USER CODE END Application */
 
+<<<<<<< HEAD
+=======
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+	// General Branches
+	OUT_N_S_MConn_MNSD_Semph = xSemaphoreCreateBinary();
+	IN_S_MNSD_Receive_Semph	 = xSemaphoreCreateBinary();
+	// General control
+	// ESP
+	// SD
+	// Nodes
+	IN_N_CheckNet_Semph = xSemaphoreCreateBinary();
+	IN_N_MConn_MNet_Semph = xSemaphoreCreateBinary();
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+	Record_Timer = xTimerCreate("Record Timer", _1S_, pdTRUE, NULL, &vRecord_TimerCallBack ); // the periodic will change according to the flashing speed.
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+	// General Branches
+	S_Sec_ESP_TO_MSD_Queue	= xQueueCreate(2,sizeof(uint8_t));
+	OUT_S_E_MSD_MESP_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	OUT_E_S_MESP_MSD_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	OUT_S_N_MSD_MNet_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	OUT_S_N_MSD_MConn_Queue = xQueueCreate(2,sizeof(uint8_t));
+	OUT_N_S_MConn_MSD_Queue	= xQueueCreate(2,sizeof(uint8_t));
+	// General control
+	IN_G_CBranch_CDMA_Queue = xQueueCreate(2,sizeof(uint8_t));
+	// ESP
+	IN_E_Receive_MESP_Queue = xQueueCreate(2,sizeof(uint8_t));
+	IN_E_MESP_Send_Queue    = xQueueCreate(2,sizeof(uint8_t));
+	// SD
+	IN_S_Receive_MSD_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	IN_S_MSD_Send_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	// Nodes
+	IN_N_MNetwork_MConn_Queue   = xQueueCreate(1,sizeof(uint8_t));
+	IN_N_Receive_MConn_Queue_1  = xQueueCreate(2,sizeof(uint8_t));
+	IN_N_Receive_MConn_Queue_2	= xQueueCreate(1,sizeof(uint8_t));
+	IN_N_MConn_Send_Queue_1 	= xQueueCreate(2,sizeof(uint8_t));
+	IN_N_MConn_Send_Queue_2	    = xQueueCreate(1,sizeof(uint8_t));
+	IN_N_Receive_CheckNet_Queue = xQueueCreate(2,sizeof(uint8_t));
+	IN_N_CheckNet_Send_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	IN_N_MNetwork_Send_Queue	= xQueueCreate(2,sizeof(uint8_t));
+	IN_N_CheckNet_MNetwork_Queue= xQueueCreate(2,sizeof(uint8_t));
+	// QueueSet.
+	MConn_QueueSet			= xQueueCreateSet(MConn_QueueSet_Size);
+	N_Send_QueueSet 		= xQueueCreateSet(N_Send_QueueSet_Size);
+	MSD_QueueSet 		    = xQueueCreateSet(200);
+
+	// Add to set
+	xQueueAddToSet(IN_N_Receive_MConn_Queue_1, MConn_QueueSet);
+	xQueueAddToSet(OUT_S_N_MSD_MConn_Queue, MConn_QueueSet);
+	xQueueAddToSet(IN_N_MNetwork_MConn_Queue, MConn_QueueSet);
+
+	xQueueAddToSet(IN_N_MConn_Send_Queue_1, N_Send_QueueSet);
+	xQueueAddToSet(IN_N_MNetwork_Send_Queue, N_Send_QueueSet);
+
+
+	xQueueAddToSet(  IN_S_Receive_MSD_Queue, MSD_QueueSet);
+	xQueueAddToSet( OUT_N_S_MConn_MSD_Queue , MSD_QueueSet);
+	//xQueueAddToSet( S_Sec_ESP_TO_MSD_Queue , MSD_QueueSet);
+
+
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+	/* General Branch Fun */
+	xTaskCreate( Check_Validity_Task_Func , "Check Validity"  , 100 , NULL , 26U , &Check_Validity_Task_Handler );
+	/* General Control Branch Fun */
+	xTaskCreate( Init_Deinit_Reset_Task_Func , "Initi,Deinit,and Reset"  , 100 , NULL , 30U , &Init_Deinit_Reset_Task_Handler );
+	xTaskCreate( Control_Branch_Task_Func , "Control Branch"  , 100 , NULL , 29U , &Control_Branch_Task_Handler );
+	xTaskCreate( Control_DMA_Task_Func , "Control DMA"  , 100 , NULL , 28U , &Control_DMA_Task_Handler );
+	/* ESP Branch Fun */
+	xTaskCreate( Receive_from_EST_Task_Func , "Receive from EST"  , 100 , NULL , 5U , &Receive_from_EST_Task_Handler );
+	xTaskCreate( Manage_ESP_Task_Func , "Manage ESP"  , 100 , NULL , 4U , &Manage_ESP_Task_Handler );
+	xTaskCreate( Send_to_ESP_Task_Func , "Send to ESP"  , 100 , NULL , 3U , &Send_to_ESP_Task_Handler );
+	/* SD Branch Fun */
+	xTaskCreate( Manage_SD_Task_Func , "Manage SD"  , 700 , NULL , 5U , &Manage_SD_Task_Handler );
+	xTaskCreate( Send_to_SD_Task_Func , "Send to SD"  , 100 , NULL , 4U , &Send_to_SD_Task_Handler );
+	xTaskCreate( Receive_from_SD_Task_Func , "Receive from SD"  , 100 , NULL , 3U , &Receive_from_SD_Task_Handler );
+	/* Main Nodes Branch Fun */
+	xTaskCreate( Check_Network_Task_Func , "Check Network"  , 100 , NULL , 5U , &Check_Network_Task_Handler );
+	xTaskCreate( Manage_Network_Task_Func , "Manage Network"  , 100 , NULL , 4U , &Manage_Network_Task_Handler );
+	xTaskCreate( Receive_from_Node_Task_Func , "Receive from Node"  , 100 , NULL , 3U , &Receive_from_Node_Task_Handler );
+	xTaskCreate( Manage_Connection_Task_Func , "Manage Connection"  , 100 , NULL , 2U , &Manage_Connection_Task_Handler );
+	xTaskCreate( Send_to_Node_Task_Func , "Send to Node"  , 100 , NULL , 1U , &Send_to_Node_Task_Handler );
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+}
+>>>>>>> parent of 1597b3d (sd_tasks update)
