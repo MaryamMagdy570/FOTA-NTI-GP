@@ -29,7 +29,8 @@
 #define  	_1S_					pdMS_TO_TICKS(1000)
 #define 	MConn_QueueSet_Size		50
 #define		N_Send_QueueSet_Size	50
-#define 	MAX_SLAVE_COUNT			5
+#define 	MAX_SLAVE_COUNT			1
+//#define 	MAX_SLAVE_COUNT			5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,7 +48,8 @@ uint8_t FILE_RECORD[5]	=	{10,11,12,13,14};
 
 /* Task Handlers -------------------------------------------------------------*/
 /* USER CODE BEGIN Tasks */
-
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart3;
 /* General Branch tasks ------------------------------------------------------*/
 TaskHandle_t Check_Validity_Task_Handler;
 /*----------------------------------------------------------------------------*/
@@ -95,6 +97,9 @@ QueueHandle_t	IN_G_CBranch_CDMA_Queue = NULL ;
 /* ESP Branch Queues ---------------------------------------------------------*/
 QueueHandle_t	IN_E_Receive_MESP_Queue = NULL ;
 QueueHandle_t	IN_E_MESP_Send_Queue = NULL ;
+QueueHandle_t	queue_sizefromsec = NULL ;
+QueueHandle_t	queue_send_ack_to_esp = NULL ;
+
 /*----------------------------------------------------------------------------*/
 /* SD Branch Queues ----------------------------------------------------------*/
 QueueHandle_t	IN_S_Receive_MSD_Queue = NULL ;
@@ -111,7 +116,10 @@ QueueHandle_t	IN_N_MConn_Send_Queue_2 = NULL ;
 QueueHandle_t	IN_N_Receive_CheckNet_Queue = NULL ;
 QueueHandle_t	IN_N_CheckNet_Send_Queue = NULL ;
 QueueHandle_t	IN_N_MNetwork_Send_Queue = NULL ;
+QueueHandle_t	IN_N_MNetwork_Send_Queue_2 = NULL ;
 QueueHandle_t	IN_N_CheckNet_MNetwork_Queue = NULL;
+
+
 // Queue set:
 QueueSetHandle_t	MConn_QueueSet  = NULL;
 QueueSetHandle_t	N_Send_QueueSet  = NULL;
@@ -130,6 +138,10 @@ SemaphoreHandle_t	OUT_N_S_MConn_MNSD_Semph ;
 /* General Control Branch Semaphores -----------------------------------------*/
 /*----------------------------------------------------------------------------*/
 /* ESP Branch Semaphores -----------------------------------------------------*/
+SemaphoreHandle_t   Manage_ESP_Semph;
+SemaphoreHandle_t   Receive_Data_Semph;
+SemaphoreHandle_t   Send_MESP_Semph;
+SemaphoreHandle_t   Receive_MESP_Semph;
 /*----------------------------------------------------------------------------*/
 /* SD Branch Semaphores ------------------------------------------------------*/
 SemaphoreHandle_t	IN_S_MNSD_Receive_Semph;
@@ -240,27 +252,92 @@ void Control_DMA_Task_Func(void * pvParameters)
 
 /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 /* ESP Branch code -----------------------------------------------------------*/
+
 void Manage_ESP_Task_Func(void * pvParameters)
 {
-	while(1)
-	{
+  //xSemaphoreTake()
+  uint8_t receive_buffer[128];
+  uint16_t blocks_num=0;
+  uint8_t ack=0;
+  while(1)
+  {
 
-	}
+
+
+    if (xSemaphoreTake(Manage_ESP_Semph,100))
+    {
+
+      xQueueReceive(queue_sizefromsec, (uint8_t*)(&blocks_num), 100);
+
+      if (xSemaphoreTake(Receive_Data_Semph,100))
+      {
+
+        while (blocks_num)
+        {
+          if (uxQueueMessagesWaiting(OUT_S_E_MSD_MESP_Queue) > 0)
+          {
+            xQueueReceive(OUT_S_E_MSD_MESP_Queue,&ack,100/*block time*/);
+            xQueueSend(queue_send_ack_to_esp,&ack,100/*block time*/);
+            xSemaphoreGive(Send_MESP_Semph);
+            xSemaphoreGive(Receive_MESP_Semph);
+
+          }
+          if (uxQueueMessagesWaiting(IN_E_Receive_MESP_Queue) > 0)
+          {
+            xQueueReceive(IN_E_Receive_MESP_Queue, receive_buffer, 100/*block time*/);
+            blocks_num--;
+            xQueueSend(OUT_E_S_MESP_MSD_Queue, receive_buffer, 100/*block time*/);
+          }
+        }
+
+      }
+    }
+  }
 }
+
 void Send_to_ESP_Task_Func(void * pvParameters)
 {
-	while(1)
-	{
-
-	}
+  uint8_t ack='A';
+  HAL_StatusTypeDef state =HAL_OK;
+  while(1)
+  {
+    if(xSemaphoreTake(Send_MESP_Semph,100/*block time*/))
+    {
+      if (uxQueueMessagesWaiting(queue_send_ack_to_esp) > 0)
+      {
+        xQueueReceive(queue_send_ack_to_esp, &ack, 100/*block time*/);
+        state=HAL_UART_Transmit(&huart1,&ack,1,10000);
+        if (state != HAL_OK)
+        {
+          Error_Handler();
+        }
+      }
+    }
+  }
 }
 void Receive_from_EST_Task_Func(void * pvParameters)
 {
-	while(1)
-	{
+  uint8_t block[128];
+  HAL_StatusTypeDef state =HAL_OK;
+  while(1)
+  {
+    if(xSemaphoreTake(Receive_MESP_Semph,100/*block time*/))
+    {
 
-	}
+      state=HAL_UART_Receive(&huart1, block,/*block size */128,HAL_MAX_DELAY);
+      // check status then send the queue
+      if (state != HAL_OK)
+      {
+        Error_Handler();
+      }
+      else
+      {
+        xQueueCRSend(IN_E_MESP_Send_Queue,block, 100/*block time*/);
+      }
+    }
+  }
 }
+
 /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
 /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -402,13 +479,13 @@ void Manage_SD_Task_Func(void * pvParameters)
 			// send data from buffer to send to sd task
 			xQueueSend(IN_S_MSD_Send_Queue,ESP_Record_localBuffer,0);
 	}
-	else if (local_Queue = IN_S_Send_MSD_Queue)
+	else if (local_Queue == IN_S_Send_MSD_Queue)
 	{
 		// recieve A or C
-		xQueueReceive(local_Queue, ACK_Buffer, portMAX_DELAY);
+		xQueueReceive(local_Queue, &ACK_Buffer, portMAX_DELAY);
 		if (ACK_Buffer == 'A')
 		{
-			xQueueSend(OUT_S_E_MSD_MESP_Queue,ACK_Buffer,0);
+			xQueueSend(OUT_S_E_MSD_MESP_Queue,&ACK_Buffer,0);
 		}
 		else if (ACK_Buffer == 'C')
 		{
@@ -426,6 +503,7 @@ void Send_to_SD_Task_Func(void * pvParameters)   //write
 {
 	BYTE Record_localWriteBuffer[128];
 	uint8_t dataLength = 0;
+	uint8_t ACK;
     UINT bytesWrote;
 	while(1)
 	{
@@ -433,7 +511,7 @@ void Send_to_SD_Task_Func(void * pvParameters)   //write
 		xQueueReceive(IN_S_MSD_Send_Queue, Record_localWriteBuffer, portMAX_DELAY);
 
 		// getting length of data
-		dataLength = strlen(Record_localWriteBuffer);
+		dataLength = strlen((const char *)Record_localWriteBuffer);
 
 		// send the data from local buffer to SD card
 		fres = f_write(&Current_File_Handle_for_Write, Record_localWriteBuffer, dataLength , &bytesWrote);
@@ -441,11 +519,13 @@ void Send_to_SD_Task_Func(void * pvParameters)   //write
 
 		if (bytesWrote == 128)
 		{
-			xQueueSend(IN_S_Send_MSD_Queue,'A',0);
+			ACK = 'A';
+			xQueueSend(IN_S_Send_MSD_Queue,&ACK,0);
 		}
 		else if (bytesWrote < 128)
 		{
-			xQueueSend(IN_S_Send_MSD_Queue,'C',0);
+			ACK = 'C';
+			xQueueSend(IN_S_Send_MSD_Queue,&ACK,0);
 		}
 	}
 }
@@ -495,92 +575,90 @@ void Receive_from_SD_Task_Func(void * pvParameters)   //read
 /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 /* Main Nodes Branch code ----------------------------------------------------*/
 uint8_t flag_address_buffer_update = 0;
-uint8_t slave_address_buffer[MAX_SLAVE_COUNT]={0x50,0x51,0x52,0x53,0x54};
+//uint8_t slave_address_buffer[MAX_SLAVE_COUNT]={0x50,0x51,0x52,0x53,0x54};
+uint8_t slave_address_buffer[1] ={ 0x50};
 void Check_Network_Task_Func(void * pvParameters)
 {
-	uint8_t slave_address_buffer[MAX_SLAVE_COUNT];
-    uint8_t data_to_slave = 0xAA;
+  uint8_t slaves_connected[MAX_SLAVE_COUNT]={0};
+    uint8_t request = 0xAA;
     uint8_t data_from_slave;
-    uint8_t slave_index = 0;
-    while(1)
-    {
-    	//i2c transmit with slave address = 0x00
-    	xQueueSend(IN_N_CheckNet_Send_Queue, &data_to_slave,0);
-    	// receive from i2c slave their addresses
-    	xQueueReceive(IN_N_Receive_CheckNet_Queue,&data_from_slave ,0);
-    	/*** store slave address in slave_address_buffer ***/
-    	uint8_t isNewSlave = 1;
-    	for (uint8_t i = 0; i < MAX_SLAVE_COUNT; ++i)
-    	{
-    		if (slave_address_buffer[i] == data_from_slave)
-    		{
-    			isNewSlave = 0;
-    			break;
-    		}
-    	}
-    	// If it's a new slave, add it to the array
-    	if (isNewSlave && (slave_index < MAX_SLAVE_COUNT))
-    	{
-    		slave_address_buffer[slave_index++] = data_from_slave;
-    	}
-    	//send the buffer to manage network using queue
-    	xQueueSend(IN_N_CheckNet_MNetwork_Queue ,slave_address_buffer,0);
-    }
-}
+ //   uint8_t slave_index = 0;
+ while(1)
+ {
+  //i2c transmit with slave address = 0x00
+ xQueueSend(IN_N_CheckNet_Send_Queue, &request,0);
+   // receive from i2c slave their addresses
+ xQueueReceive(IN_N_Receive_CheckNet_Queue,&data_from_slave ,0);
 
+ /*** store slave address in slave_address_buffer ***/
+ for(uint8_t node_id=0; node_id < MAX_SLAVE_COUNT;node_id++)
+ {
+  if (slave_address_buffer[node_id]==data_from_slave)
+    slaves_connected[node_id]=1;
+ }
+//send the buffer to manage network using queue
+ xQueueSend(IN_N_CheckNet_MNetwork_Queue ,slaves_connected,0);
+ }
+}
 void Manage_Network_Task_Func(void * pvParameters)
 {
-	uint8_t update_node_buffer[MAX_SLAVE_COUNT];
-	uint8_t node_id;
-	uint8_t StateSUM;
-	while(1)
-	{
-	   //get the slave address buffer from check network
-	   if (flag_address_buffer_update == 0)
-	   {
-		   xQueueReceive(IN_N_CheckNet_MNetwork_Queue ,slave_address_buffer,portMAX_DELAY);
-		   flag_address_buffer_update = 1; //trigger it only once
-	   }
-	   else
-	   {
-		   if (uxQueueMessagesWaiting(OUT_S_N_MSD_MNet_Queue) > 0) //check if there is update in queue
-		   {
-			 //get the nodeS i want to update from sd card
-			 xQueueReceive(OUT_S_N_MSD_MNet_Queue ,update_node_buffer,0);
-			 StateSUM = 0;
-			 for(uint8_t var=0; var < 5;var++)
-			 {
-			   StateSUM += update_node_buffer[var];
-			 }
-		   }
-		   while(StateSUM > 0)
-		   {
-			 if (uxQueueMessagesWaiting(OUT_S_N_MSD_MNet_Queue) > 0)
-			 {
-			    //get the nodeS i want to update from sd card
-			    xQueueReceive(OUT_S_N_MSD_MNet_Queue ,update_node_buffer,0);
-			    StateSUM = 0;
-			    for(node_id=0; node_id < MAX_SLAVE_COUNT;node_id++)
-			    {
-			  	   StateSUM += update_node_buffer[node_id];
-			    }
-			 }
-			 for(node_id=0 ; node_id<MAX_SLAVE_COUNT;node_id++)
-			 {
-				if(update_node_buffer[node_id]==1)
-				{
-					//SEND THE NODE TO MCONN TASK
-					xQueueSend(IN_N_MNetwork_MConn_Queue ,&node_id,0);
-					//SEND THE SLAVE ADDRESS OF THE NODE TO SEND TASK
-					xQueueSend(IN_N_MNetwork_Send_Queue ,&slave_address_buffer[node_id],0);
-					xSemaphoreTake(IN_N_MConn_MNet_Semph,portMAX_DELAY);
-				}
-			  }
-		   }
-	   }
-	}
-}
+  uint8_t slaves_connected[MAX_SLAVE_COUNT];
+  uint8_t update_node_buffer[MAX_SLAVE_COUNT];
+  uint8_t  request_for_update = 0xBB;
+  uint8_t node_id;
+  uint8_t StateSUM;
+ while(1)
+ {
+   //get the connected slaves from check network
+   if (flag_address_buffer_update == 0)
+   {
+   xQueueReceive(IN_N_CheckNet_MNetwork_Queue ,slaves_connected,portMAX_DELAY);
+   flag_address_buffer_update = 1; //trigger it only once
+   }
+   else
+   {
+  if (uxQueueMessagesWaiting(OUT_S_N_MSD_MNet_Queue) > 0) //check if there is update in queue
+       {
+         //get the nodeS i want to update from sd card
+         xQueueReceive(OUT_S_N_MSD_MNet_Queue ,update_node_buffer,0);
+         StateSUM = 0;
+         for(uint8_t node_id=0; node_id < 5;node_id++)
+         {
+           StateSUM += update_node_buffer[node_id];
+         }
+       }
+   while(StateSUM > 0)
+   {
+     if (uxQueueMessagesWaiting(OUT_S_N_MSD_MNet_Queue) > 0)
+     {
+       //get the nodeS i want to update from sd card
+       xQueueReceive(OUT_S_N_MSD_MNet_Queue ,update_node_buffer,0);
+       StateSUM = 0;
+       for(node_id=0; node_id < MAX_SLAVE_COUNT;node_id++)
+       {
+         StateSUM += update_node_buffer[node_id];
+       }
+     }
+     for(node_id=0 ; node_id<MAX_SLAVE_COUNT;node_id++)
+        {
+          if((update_node_buffer[node_id]==1)&&(slaves_connected[node_id]==1))
+          {
+            //SEND THE NODE TO MCONN TASK
+         //   xQueueSend(IN_N_MNetwork_MConn_Queue ,&node_id,0);
+            //SEND THE SLAVE ADDRESS OF THE NODE TO SEND TASK
+            xQueueSend(IN_N_MNetwork_Send_Queue ,&slave_address_buffer[node_id],0);
+            xQueueSend(IN_N_MNetwork_Send_Queue_2 ,&request_for_update,0);
+         //   xSemaphoreTake(IN_N_MConn_MNet_Semph,portMAX_DELAY);
+         }
+        }//for
+   }/*while((StateSUM > 0)*/
 
+
+
+  }/*else*/
+
+ }
+}
 void Manage_Connection_Task_Func(void * pvParameters)
 {
 	QueueSetMemberHandle_t 	local_Queue = NULL;
@@ -796,7 +874,12 @@ void MX_FREERTOS_Init(void) {
 	IN_S_MNSD_Receive_Semph	 = xSemaphoreCreateBinary();
 	// General control
 	// ESP
+	Manage_ESP_Semph= xSemaphoreCreateBinary();;
+	Receive_Data_Semph= xSemaphoreCreateBinary();;
+	Send_MESP_Semph= xSemaphoreCreateBinary();;
+	Receive_MESP_Semph= xSemaphoreCreateBinary();;
 	// SD
+
 	// Nodes
 	IN_N_CheckNet_Semph = xSemaphoreCreateBinary();
 	IN_N_MConn_MNet_Semph = xSemaphoreCreateBinary();
@@ -819,8 +902,10 @@ void MX_FREERTOS_Init(void) {
 	// General control
 	IN_G_CBranch_CDMA_Queue = xQueueCreate(2,sizeof(uint8_t));
 	// ESP
-	IN_E_Receive_MESP_Queue = xQueueCreate(2,sizeof(uint8_t));
-	IN_E_MESP_Send_Queue    = xQueueCreate(2,sizeof(uint8_t));
+	IN_E_Receive_MESP_Queue = xQueueCreate(128,sizeof(uint8_t));
+	IN_E_MESP_Send_Queue    = xQueueCreate(128,sizeof(uint8_t));
+	queue_sizefromsec    = xQueueCreate(1,sizeof(uint8_t));
+	queue_send_ack_to_esp    = xQueueCreate(1,sizeof(uint8_t));
 	// SD
 	IN_S_Receive_MSD_Queue 	= xQueueCreate(50,sizeof(uint8_t));
 	IN_S_MSD_Send_Queue 	= xQueueCreate(128,sizeof(uint8_t));
@@ -831,10 +916,11 @@ void MX_FREERTOS_Init(void) {
 	IN_N_Receive_MConn_Queue_2	= xQueueCreate(1,sizeof(uint8_t));
 	IN_N_MConn_Send_Queue_1 	= xQueueCreate(2,sizeof(uint8_t));
 	IN_N_MConn_Send_Queue_2	    = xQueueCreate(1,sizeof(uint8_t));
-	IN_N_Receive_CheckNet_Queue = xQueueCreate(2,sizeof(uint8_t));
-	IN_N_CheckNet_Send_Queue 	= xQueueCreate(2,sizeof(uint8_t));
-	IN_N_MNetwork_Send_Queue	= xQueueCreate(2,sizeof(uint8_t));
-	IN_N_CheckNet_MNetwork_Queue= xQueueCreate(2,sizeof(uint8_t));
+	IN_N_Receive_CheckNet_Queue = xQueueCreate(1,sizeof(uint8_t));
+	IN_N_CheckNet_Send_Queue   = xQueueCreate(1,sizeof(uint8_t));
+	IN_N_MNetwork_Send_Queue    = xQueueCreate(1,sizeof(uint8_t));
+	IN_N_MNetwork_Send_Queue_2 = xQueueCreate(1,sizeof(uint8_t));
+	IN_N_CheckNet_MNetwork_Queue= xQueueCreate(1,sizeof(uint8_t));
 	// QueueSet.
 	MConn_QueueSet			= xQueueCreateSet(MConn_QueueSet_Size);
 	N_Send_QueueSet 		= xQueueCreateSet(N_Send_QueueSet_Size);
@@ -887,5 +973,19 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
+
+	  //init
+	    uint8_t blocks_num = 2;
+	    uint8_t NodeNum = 1;
+	    xQueueSend(S_Sec_ESP_TO_MSD_Queue,&NodeNum,100/*block time*/);//nodenum
+
+	    xSemaphoreGive(Manage_ESP_Semph);
+	    xQueueSend(queue_sizefromsec,&blocks_num,100/*block time*/);
+	    xSemaphoreGive(Receive_Data_Semph);
+	    //take semaphore from control
+	    //communicate with server
+	    //give semaphore to receive task
+
+
 
 }
