@@ -38,9 +38,3 @@
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2640:14:pcQueueGetName	24	static
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2668:7:vQueueUnregisterQueue	24	static
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2700:7:vQueueWaitForMessageRestricted	32	static
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2736:19:xQueueCreateSet	24	static
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2750:13:xQueueAddToSet	24	static
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2783:13:xQueueRemoveFromSet	24	static
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2819:25:xQueueSelectFromSet	24	static
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2832:25:xQueueSelectFromSetFromISR	24	static
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2845:20:prvNotifyQueueSetContainer	40	static,ignoring_inline_asm
