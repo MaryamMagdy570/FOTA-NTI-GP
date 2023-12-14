@@ -99,6 +99,8 @@ QueueHandle_t	IN_E_MESP_Send_Queue = NULL ;
 /* SD Branch Queues ----------------------------------------------------------*/
 QueueHandle_t	IN_S_Receive_MSD_Queue = NULL ;
 QueueHandle_t	IN_S_MSD_Send_Queue = NULL ;
+QueueHandle_t	IN_S_Send_MSD_Queue = NULL ;
+
 /*----------------------------------------------------------------------------*/
 /* Main Nodes Branch Queues --------------------------------------------------*/
 QueueHandle_t	IN_N_MNetwork_MConn_Queue = NULL ;
@@ -281,6 +283,7 @@ void Manage_SD_Task_Func(void * pvParameters)
 	uint8_t	ESP_SelectNode_localBuffer 	= 0;
 	uint8_t	MConn_REQUEST_localBuffer[2] = {0};
 	uint8_t	SD_Receive_MConn_Record_localBuffer[50] = {0};
+	uint8_t	ACK_Buffer = 0;
 
 	FATFS FatFs; 	//Fatfs handle
 	//SD MOUNT
@@ -306,53 +309,58 @@ void Manage_SD_Task_Func(void * pvParameters)
 
 		switch(MConn_REQUEST_localBuffer[0])
 		{
-			case 0 :	fres = f_open(&fil1, "NODE1.txt", FA_READ );
-								break;
+			case 0 :fres = f_open(&fil1, "NODE1.txt", FA_READ );
+					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
+					break;
 			case 1:	fres = f_open(&fil2, "NODE2.txt", FA_READ );
-								break;
+					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
+					break;
 			case 2:	fres = f_open(&fil3, "NODE3.txt", FA_READ );
-								break;
+					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
+					break;
 			case 3:	fres = f_open(&fil4, "NODE4.txt", FA_READ );
-								break;
+					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
+					break;
 			case 4:	fres = f_open(&fil5, "NODE5.txt", FA_READ );
-								break;
+					xSemaphoreGive(IN_S_MNSD_Receive_Semph);
+					break;
 
 			case 10: Current_File_Handle_for_Read = fil1;
-										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-												break;
+					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+					 break;
 			case 11: Current_File_Handle_for_Read = fil2;
-										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-												break;
+					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+					 break;
 			case 12: Current_File_Handle_for_Read = fil3;
-										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-												break;
+					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+					 break;
 			case 13: Current_File_Handle_for_Read = fil4;
-										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-												break;
+					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+					 break;
 			case 14: Current_File_Handle_for_Read = fil5;
-										xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
-												break;
+					 xSemaphoreGive(IN_S_MNSD_Receive_Semph);// give the semaphore that trigger the Manage SD task
+					 break;
 
-			case 5: 	f_close(&fil1);
-												MNet_SelectNode_localBuffer[0] = 0;
-												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-												break;
-			case 6: 	f_close(&fil2);
-												MNet_SelectNode_localBuffer[1] = 0;
-												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-												break;
-			case 7: 	f_close(&fil3);
-												MNet_SelectNode_localBuffer[2] = 0;
-												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-												break;
-			case 8: 	f_close(&fil4);
-												MNet_SelectNode_localBuffer[3] = 0;
-												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-												break;
-			case 9: 	f_close(&fil5);
-												MNet_SelectNode_localBuffer[4] = 0;
-												xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
-												break;
+			case 5:	f_close(&fil1);
+					MNet_SelectNode_localBuffer[0] = 0;
+					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+					break;
+			case 6:	f_close(&fil2);
+					MNet_SelectNode_localBuffer[1] = 0;
+					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+					break;
+			case 7:	f_close(&fil3);
+					MNet_SelectNode_localBuffer[2] = 0;
+					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+					break;
+			case 8:	f_close(&fil4);
+					MNet_SelectNode_localBuffer[3] = 0;
+					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+					break;
+			case 9:	f_close(&fil5);
+					MNet_SelectNode_localBuffer[4] = 0;
+					xQueueSend(OUT_S_N_MSD_MNet_Queue ,MNet_SelectNode_localBuffer,0);
+					break;
 
 				default: break;
 		}
@@ -383,7 +391,7 @@ void Manage_SD_Task_Func(void * pvParameters)
 							Current_File_Handle_for_Write = fil5;
 							MNet_SelectNode_localBuffer[4] = 1;
 							break;
-					default:  break;
+				default:  break;
 			}
 	}
 	else if (local_Queue == OUT_E_S_MESP_MSD_Queue )		 // un completed yet
@@ -394,23 +402,51 @@ void Manage_SD_Task_Func(void * pvParameters)
 			// send data from buffer to send to sd task
 			xQueueSend(IN_S_MSD_Send_Queue,ESP_Record_localBuffer,0);
 	}
+	else if (local_Queue = IN_S_Send_MSD_Queue)
+	{
+		// recieve A or C
+		xQueueReceive(local_Queue, ACK_Buffer, portMAX_DELAY);
+		if (ACK_Buffer == 'A')
+		{
+			xQueueSend(OUT_S_E_MSD_MESP_Queue,ACK_Buffer,0);
+		}
+		else if (ACK_Buffer == 'C')
+		{
+			f_close(&Current_File_Handle_for_Write);
+			xQueueSend(OUT_S_N_MSD_MNet_Queue,MNet_SelectNode_localBuffer,0);
+		}
+	}
 	else;
+
 	}
 }
 
 
 void Send_to_SD_Task_Func(void * pvParameters)   //write
 {
-	BYTE Record_localWriteBuffer[512];
-  UINT bytesWrote;
+	BYTE Record_localWriteBuffer[128];
+	uint8_t dataLength = 0;
+    UINT bytesWrote;
 	while(1)
 	{
 		// receive the data from sd_manage into the local buffer.
 		xQueueReceive(IN_S_MSD_Send_Queue, Record_localWriteBuffer, portMAX_DELAY);
 
-		// send the data from local buffer to SD card
-  	fres = f_write(&Current_File_Handle_for_Write, Record_localWriteBuffer, 512 , &bytesWrote);
+		// getting length of data
+		dataLength = strlen(Record_localWriteBuffer);
 
+		// send the data from local buffer to SD card
+		fres = f_write(&Current_File_Handle_for_Write, Record_localWriteBuffer, dataLength , &bytesWrote);
+
+
+		if (bytesWrote == 128)
+		{
+			xQueueSend(IN_S_Send_MSD_Queue,'A',0);
+		}
+		else if (bytesWrote < 128)
+		{
+			xQueueSend(IN_S_Send_MSD_Queue,'C',0);
+		}
 	}
 }
 
@@ -786,8 +822,9 @@ void MX_FREERTOS_Init(void) {
 	IN_E_Receive_MESP_Queue = xQueueCreate(2,sizeof(uint8_t));
 	IN_E_MESP_Send_Queue    = xQueueCreate(2,sizeof(uint8_t));
 	// SD
-	IN_S_Receive_MSD_Queue 	= xQueueCreate(2,sizeof(uint8_t));
-	IN_S_MSD_Send_Queue 	= xQueueCreate(2,sizeof(uint8_t));
+	IN_S_Receive_MSD_Queue 	= xQueueCreate(50,sizeof(uint8_t));
+	IN_S_MSD_Send_Queue 	= xQueueCreate(128,sizeof(uint8_t));
+	IN_S_Send_MSD_Queue 	= xQueueCreate(1,sizeof(uint8_t));
 	// Nodes
 	IN_N_MNetwork_MConn_Queue   = xQueueCreate(1,sizeof(uint8_t));
 	IN_N_Receive_MConn_Queue_1  = xQueueCreate(2,sizeof(uint8_t));
@@ -812,9 +849,12 @@ void MX_FREERTOS_Init(void) {
 	xQueueAddToSet(IN_N_MNetwork_Send_Queue, N_Send_QueueSet);
 
 
-	xQueueAddToSet(  IN_S_Receive_MSD_Queue, MSD_QueueSet);
+	xQueueAddToSet( IN_S_Receive_MSD_Queue, MSD_QueueSet);
+	xQueueAddToSet( IN_S_Send_MSD_Queue , MSD_QueueSet);
 	xQueueAddToSet( OUT_N_S_MConn_MSD_Queue , MSD_QueueSet);
-	//xQueueAddToSet( S_Sec_ESP_TO_MSD_Queue , MSD_QueueSet);
+	xQueueAddToSet( OUT_E_S_MESP_MSD_Queue , MSD_QueueSet);
+	xQueueAddToSet( S_Sec_ESP_TO_MSD_Queue , MSD_QueueSet);
+
 
 
   /* USER CODE END RTOS_QUEUES */
